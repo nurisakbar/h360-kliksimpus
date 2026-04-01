@@ -4,22 +4,21 @@ In order to launch this system:
 docker compose up -d
 ```
 
-Then just go to this url and login with the below credentials:
+Once the system is running, access the dashboard at:
 
-http://localhost:3000/d/heart360demo/heart-360-global-dashboard
+- **URL:** http://localhost:3000/d/heart360demo/heart-360-global-dashboard
+- **Username:** `admin`
+- **Password:** `your_secure_password`
 
-username: admin
-password: your_secure_password
+### Upload Files
 
-to upload file:
+To upload files, navigate to:
 
-http://localhost:8080/
+- **URL:** http://localhost:8080/
+- **Username:** `admin`
+- **Password:** `admin`
 
-username: admin
-password: admin
+### Important Security Note
 
-Note: These are the default passwords provided and should be changed in the docker_compose.yml file after cloning.
----
-
-# HEARTS360 Toolkit for Indonesia
+⚠️ **The credentials provided above are default credentials.** They should be changed in the `docker-compose.yml` file after cloning the repository for security purposes.
 
