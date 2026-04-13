@@ -64,6 +64,8 @@ services:
         INGEST_SCRIPT_PATH: /scripts/ingest_file_h360tk.py
     image: h360tk-sftpgo:local
     container_name: sftpgo
+    # Match ./.upload ownership on the host: set HOST_UID / HOST_GID in .env to `id -u` / `id -g`.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     depends_on:
       - postgres
     ports:

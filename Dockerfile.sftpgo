@@ -21,7 +21,9 @@ RUN python3 -m venv /opt/ingest \
 COPY ingest_file_h360tk.py ${INGEST_SCRIPT_PATH}
 COPY scripts/sftpgo_ingest_hook.sh /usr/local/bin/sftpgo_ingest_hook.sh
 
+# Readable/traversable by any runtime user (Compose sets user: so bind-mount .upload matches the host).
 RUN chmod 755 /usr/local/bin/sftpgo_ingest_hook.sh \
-    && chown -R 1000:1000 "$(dirname "${INGEST_SCRIPT_PATH}")" /opt/ingest
+    && chmod -R a+rX /opt/ingest "$(dirname "${INGEST_SCRIPT_PATH}")"
 
+# Default when the image is run without Compose `user:`; Compose overrides to HOST_UID:HOST_GID.
 USER 1000:1000
