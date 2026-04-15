@@ -115,9 +115,7 @@ If your system uses a different default value, you can update this accordingly.
 
 ### FTP Server Configuration (Automated Uploads)
 
-#### Note:
-This configuration is needed when the system is hosted somewhere other than localhost.
-If you are using it your local system, and running the service on localhost, you might choose to skip this.
+#### Note: This configuration is needed when the system is hosted somewhere other than localhost. If you are using it on your local system, and running the service on localhost, you might choose to skip this.
 
 The system includes an FTP server powered by SFTPGo, which allows you to automate file uploads for ingestion.
 
@@ -193,7 +191,7 @@ These values should match user and group IDs which has created .upload directory
   * The ingestion script may fail due to permission errors
 
 ##### How to set it correctly
-Check from which user the .upload directory, inside the prohect directory, is created with. Most likely in a hosted system (other than localhost), it will be root
+Check from which user the .upload directory, inside the project directory, is created with. Most likely in a hosted system (other than localhost), it will be root
 
 Run the following commands on your host:
 
