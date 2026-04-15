@@ -138,24 +138,150 @@ You can upload files using tools like `curl`:
 ```
 curl -T ./test_data/01_Sample_Data.xlsx "ftp://webuser:userpass456@127.0.0.1:2121/01_Sample_Data.xlsx"
 ```
+---
+
+#### Automating Daily File Generation and Upload
+
+This setup allows users to:
+1. Generate a file (custom logic)
+2. Upload it to the FTP server
+3. Run this process automatically every day
 
 ---
 
-#### Automating Periodic Uploads
+### Step 1: Create Upload Script
 
-You can automate uploads using cron jobs.
+Create a script file:
 
-Example (runs every hour):
+```bash
+nano generate_and_upload.sh
+```
+
+Add the following content:
+
+```bash
+#!/bin/bash
+
+# -------------------------------
+# USER-DEFINED FILE GENERATION
+# -------------------------------
+
+# Example: Generate a file name with today's date
+BASE_DIR="/path/to/output"
+FILE_NAME="file_$(date +%F).xlsx"
+FILE_PATH="$BASE_DIR/$FILE_NAME"
+
+# Ensure output directory exists
+mkdir -p "$BASE_DIR"
+
+# -------------------------------
+# ADD YOUR FILE GENERATION LOGIC HERE
+# -------------------------------
+# Replace this section with your actual logic
+# Example placeholder:
+echo "Sample data generated on $(date)" > "$FILE_PATH"
+
+# Example alternatives:
+# python generate_data.py "$FILE_PATH"
+# psql -d mydb -c "COPY (SELECT ...) TO '$FILE_PATH' CSV HEADER"
+
+# -------------------------------
+# FTP CONFIGURATION
+# -------------------------------
+
+FTP_USER="webuser"
+FTP_PASS="userpass456"
+FTP_HOST="127.0.0.1"
+FTP_PORT="2121"
+
+LOG_FILE="/tmp/ftp_upload.log"
+
+echo "[$(date)] Starting job..." >> "$LOG_FILE"
+
+# Validate file creation
+if [ ! -f "$FILE_PATH" ]; then
+    echo "[$(date)] ERROR: File generation failed: $FILE_PATH" >> "$LOG_FILE"
+    exit 1
+fi
+
+# -------------------------------
+# FILE UPLOAD
+# -------------------------------
+
+curl -T "$FILE_PATH" "ftp://$FTP_USER:$FTP_PASS@$FTP_HOST:$FTP_PORT/$FILE_NAME" >> "$LOG_FILE" 2>&1
+
+if [ $? -eq 0 ]; then
+    echo "[$(date)] SUCCESS: Uploaded $FILE_NAME" >> "$LOG_FILE"
+else
+    echo "[$(date)] ERROR: Upload failed for $FILE_NAME" >> "$LOG_FILE"
+    exit 1
+fi
+```
+
+Make the script executable:
+
+```bash
+chmod +x generate_and_upload.sh
+```
+
+---
+
+### Step 2: Schedule Daily Execution
+
+Edit crontab:
 
 ```bash
 crontab -e
 ```
 
-Add:
+Add the following entry to run the script daily at midnight:
+
+```bash
+0 0 * * * /full/path/to/generate_and_upload.sh
+```
+
+---
+
+### How This Works
+
+- The script runs once every day
+- It generates a file using user-defined logic
+- The generated file is uploaded to the FTP server
+- Logs are written to `/tmp/ftp_upload.log`
+
+---
+
+### What Users Need to Customize
+
+Users only need to modify this section:
+
+```bash
+# ADD YOUR FILE GENERATION LOGIC HERE
+```
+
+Examples:
+- Run a Python script
+- Export data from a database
+- Transform existing files
+
+---
+
+### Cron Schedule Format
 
 ```
-0 * * * * curl -T /path/to/file.xlsx "ftp://webuser:userpass456@127.0.0.1:2121/file.xlsx"
+0 0 * * *
 ```
+
+- Runs daily at midnight
+
+---
+
+### Notes
+
+- Always use absolute paths
+- Ensure required tools (python, psql, etc.) are installed
+- Verify FTP credentials and connectivity
+- Check logs for troubleshooting
 
 ---
 
