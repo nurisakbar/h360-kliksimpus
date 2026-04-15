@@ -91,20 +91,27 @@ flowchart TD
 
 ### End-to-End Flow (UI + FTP)
 
-User Web UI FTP Server Ingestion Service PostgreSQL Grafana
-| | | | | |
-|---Upload File-->| | | | |
-| |---Save File--->| | | |
-| | | | | |
-| | | |---Detect File---->| |
-| | | | | |
-| | | |---Parse & Validate |
-| | | | | |
-| | | |---Insert Data---->| |
-| | | | | |
-| | | | |---Query---->|
-| | | | | |
-| | | | |<--Dashboard |
+sequenceDiagram
+    participant User
+    participant UI as Web UI
+    participant FTP as FTP Server
+    participant Ingest as Ingestion Service
+    participant DB as PostgreSQL
+    participant Grafana
+
+    User->>UI: Upload File
+    UI->>Ingest: Save to shared volume
+
+    User->>FTP: Upload file (optional)
+    FTP->>Ingest: Place in ingestion directory
+
+    Ingest->>Ingest: Detect new file
+    Ingest->>Ingest: Parse & validate
+    Ingest->>DB: Insert data
+
+    Grafana->>DB: Query data
+    DB-->>Grafana: Return results
+    
 ---
 
 ## 6. Container Breakdown
