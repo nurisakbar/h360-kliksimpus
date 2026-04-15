@@ -2,10 +2,13 @@
 
 | Column Name       | Description |  Notes
 |-------------------|-------------|--------
-| Patient Name      | Patient's full name as free text (e.g. "Ishita Tanya"). | Optional. Can be omitted if there are data-sharing or privacy restrictions. The toolkit functions normally without it. |
+| First Name      | Patient's first name as free text (e.g. "Ishita"). | Optional. Can be omitted if there are data-sharing or privacy restrictions. The toolkit functions normally without it. |
+| Middle Name      | Patient's middle name as free text (e.g. "MD"). | Optional. Can be omitted if there are data-sharing or privacy restrictions. The toolkit functions normally without it. |
+| Last Name      | Patient's last name as free text (e.g. "Tanya"). | Optional. Can be omitted if there are data-sharing or privacy restrictions. The toolkit functions normally without it. |
 | Patient ID        | A unique identifier for each patient — any alphanumeric string (e.g. "PH-00123"). Each patient must have exactly one ID that stays the same across visits. | REQUIRED FIELD. Used to match visits to the correct patient and prevent duplicate records. |
 | Phone Number      | Patient's phone number as a string (e.g. "09171234567"). No specific format enforced. | Optional |
-| Date of Birth     | Patient's date of birth in DD/MM/YYYY or YYYY-MM-DD format. | Optional |
+| Date of Birth     | Patient's date of birth in DD/MM/YYYY or YYYY-MM-DD format. | Optional. If missing the toolkit will use Age as a fallback and calculate it from age.|
+| Age               | Patient's age as a number (e.g. 36) | Optional. Used to calculate date of birth if file doesn't have a Date Of Birth value | 
 | Gender            | Free text (e.g. "Male", "Female"). No specific coding required. | Optional |
 | Registration Date | Date the patient was first registered. Accepts most date formats: DD/MM/YYYY, YYYY-MM-DD, or with time included. | If missing, the toolkit will use the Last Visit Time as a fallback. If both are missing, the row is skipped. |
 | Visit Time        | Date (and optionally time) of the most recent clinical encounter. Accepts: DD/MM/YYYY, YYYY-MM-DD, or with time (e.g. "2024-03-15 10:30:00"). | REQUIRED. Used as the encounter date. Also serves as a fallback for Registration Date if that field is missing. Rows without a valid date here are skipped. |

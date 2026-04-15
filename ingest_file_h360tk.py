@@ -10,10 +10,13 @@ from psycopg2 import errorcodes
 
 HEADER_ROW = 1
 COL_INDIVIDUAL_ID = 'Patient ID'
-COL_PATIENT_NAME = 'Patient Name'
+COL_FIRST_NAME = 'First Name'
+COL_MIDDLE_NAME = 'Middle Name'
+COL_LAST_NAME = 'Last Name'
 COL_SEX = 'Gender'
 COL_MOBILE = 'Phone Number'
 COL_DATE_OF_BIRTH = 'Date of Birth'
+COL_AGE = 'Age'
 
 # Facility hierarchy columns
 COL_REGION = 'Region'
@@ -93,6 +96,35 @@ def safe_str(value):
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     return str(value)
+
+def calculate_dob_from_age(age, reference_date=None):
+    if age is None or (isinstance(age, float) and pd.isna(age)):
+        return None
+
+    try:
+        age = int(age)
+    except:
+        return None
+
+    if reference_date is None:
+        reference_date = datetime.today()
+
+    try:
+        return reference_date.replace(year=reference_date.year - age)
+    except ValueError:
+        # Handle leap year edge case (Feb 29)
+        return reference_date - timedelta(days=age * 365)
+
+def build_patient_name(row):
+    first = safe_str(row.get(COL_FIRST_NAME))
+    middle = safe_str(row.get(COL_MIDDLE_NAME))
+    last = safe_str(row.get(COL_LAST_NAME))
+
+    name_parts = [part.strip() for part in [first, middle, last] if part and part.strip()]
+    if not name_parts:
+        return None
+
+    return " ".join(name_parts)
 
 def build_hierarchy_from_row(row):
     """Build (name, level) tuples for upsert_org_unit_chain from HIERARCHY_LEVELS."""
@@ -301,14 +333,16 @@ def ingest_and_execute(file_path: str) -> None:
             if pd.isna(row.get(COL_INDIVIDUAL_ID)) or str(row.get(COL_INDIVIDUAL_ID)).strip() == '':
                 continue
 
-            # Get registration date from the registration date column
             visit_date = parse_date(row.get(COL_VISIT_TIME))
-            if not visit_date:
-                stats['invalid_visit_date'] += 1
-                print(f"Row {idx + 2}: Skipping - visit time not found or invalid", file=sys.stderr)
-                continue
-            
             registration_date = parse_date(row.get(COL_REGISTRATION_DATE))
+
+            if not visit_date:
+                if registration_date:
+                    visit_date = registration_date
+                else:
+                    stats['invalid_visit_date'] += 1
+                    print(f"Row {idx + 2}: Skipping - registration date and visit time not found or invalid", file=sys.stderr)
+                    continue
             
             # If registration date not found, try to use last visit time
             if not registration_date:
@@ -316,7 +350,7 @@ def ingest_and_execute(file_path: str) -> None:
                     registration_date = visit_date
                 else:
                     stats['invalid_registration_date'] += 1
-                    print(f"Row {idx + 2}: Skipping - registration date and last visit time not found or invalid", file=sys.stderr)
+                    print(f"Row {idx + 2}: Skipping - registration date and visit time not found or invalid", file=sys.stderr)
                     continue
 
             systolic = row.get(COL_SYSTOLIC)
@@ -340,9 +374,7 @@ def ingest_and_execute(file_path: str) -> None:
             patient_id = uuid_to_int_hash(row.get(COL_INDIVIDUAL_ID))
             # Build patient fields
             
-            patient_name = str(row.get(COL_PATIENT_NAME, '')).strip() if not pd.isna(row.get(COL_PATIENT_NAME)) else ''
-            if not patient_name:
-                patient_name = None
+            patient_name = build_patient_name(row)
 
             gender = safe_str(row.get(COL_SEX)) if not pd.isna(row.get(COL_SEX)) else None
 
@@ -359,6 +391,10 @@ def ingest_and_execute(file_path: str) -> None:
                     phone_number = phone_str
 
             birth_date = parse_date(row.get(COL_DATE_OF_BIRTH))
+
+            if not birth_date:
+                age_value = row.get(COL_AGE)
+                birth_date = calculate_dob_from_age(age_value, reference_date=registration_date)
 
             phc = safe_str(row.get(COL_PHC)) or 'UNKNOWN'
             hierarchy = build_hierarchy_from_row(row)
@@ -396,7 +432,7 @@ def ingest_and_execute(file_path: str) -> None:
                 enc_id = execute_insert_encounter(cur, patient_id_sql, visit_date, org_unit_id)
                 if not pd.isna(systolic) and not pd.isna(diastolic):
                     execute_insert_bp(cur, enc_id, systolic, diastolic)
-                
+
                 if not pd.isna(sugar_value) and not pd.isna(sugar_type):
                     execute_insert_bs(cur, enc_id, sugar_type, sugar_value)
 
