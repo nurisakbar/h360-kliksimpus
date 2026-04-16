@@ -12,8 +12,6 @@ Once the system is running, access the dashboard at:
 - **Username:** `admin`
 - **Password:** `your_secure_password`
 
-### FTP Server
-
 To upload manually through UI, navigate to:
 
 - **Web Admin URL:** http://localhost:8090/
