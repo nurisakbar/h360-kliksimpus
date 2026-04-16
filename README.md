@@ -1,3 +1,51 @@
+In order to launch this poc on local:
+
+```
+git clone https://github.com/simpledotorg/h360tk_demo.git
+cd h360tk_demo
+docker compose up -d
+```
+
+Once the system is running, access the dashboard at:
+
+- **URL:** http://localhost:3000/d/heart360demo/heart-360-global-dashboard
+- **Username:** `admin`
+- **Password:** `your_secure_password`
+
+### FTP Server
+
+To upload manually through UI, navigate to:
+
+- **Web Admin URL:** http://localhost:8090/
+- **Username:** `webuser`
+- **Password:** `userpass456`
+
+---
+
+# HEARTS360 Toolkit
+
+HEARTS360 Toolkit is a Grafana-based system designed to help District Health Offices monitor hypertension care across facilities. The system processes patient line list data and generates visual dashboards.
+
+## What is HEARTS360 Toolkit
+
+HEARTS360 Toolkit is a Grafana-based system designed to help Health Offices monitor hypertension and diabetes care across facilities. The system processes patient line list data and generates visual dashboards that show:
+
+- **Hypertension dashboard:** Monitor hypertension program reach, BP control, and other key indicators
+- **Diabetes dashboard:** Monitor diabetes program reach, blood sugar control, and other key indicators
+- **Overdue line lists:** Lists of patients who need follow-up care
+
+
+## Key Use Cases
+
+HEARTS360 Toolkit supports three main use cases:
+
+**Routine Data Monitoring:** The system automatically processes patient visit data and updates dashboards, providing real-time visibility into care delivery, easy identification of patients needing follow-up, and trend analysis over time.
+
+**Dashboard Validation:** Compare Hypertension and Diabetes indicators with EHR system dashboards to validate data accuracy, identify data entry errors, and ensure reporting consistency.
+
+**District-Level Oversight:** Each facility uploads their data, and district team views the district-level dashboard to monitor hypertension care across all facilities. This enables district-wide visibility without compromising patient privacy, supports data-driven decision making, and helps allocate resources based on need.
+
+---
 ## Setup Instructions
 
 ### 1. Clone the Repository
