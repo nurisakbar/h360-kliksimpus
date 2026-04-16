@@ -76,7 +76,7 @@ def uuid_to_int_hash(uuid_str):
     if pd.isna(uuid_str) or not uuid_str:
         return None
     digest = hashlib.sha256(str(uuid_str).strip().encode('utf-8')).hexdigest()
-    return int(digest[:15], 16) % (2**63)
+    return int(digest[:15], 16) % (2**53)
 
 def parse_date(date_str):
     if pd.isna(date_str) or date_str is None or str(date_str).strip() == '':
