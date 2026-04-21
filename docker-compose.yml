@@ -8,7 +8,7 @@ services:
     restart: unless-stopped
     environment:
       - GF_DATABASE_URL=postgres://grafana:ZDI5MGE3YmYyMTRlNGNmYThkMTYyZjk3@postgres:5432/${POSTGRES_DB}
-      - GF_SECURITY_ADMIN_PASSWORD=your_secure_password
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_SERVER_DOMAIN=dashboards.${DOMAIN_NAME}
       - GF_SERVER_ROOT_URL=https://dashboards.${DOMAIN_NAME}
       - VIRTUAL_HOST=dashboards.${DOMAIN_NAME}
@@ -54,7 +54,7 @@ services:
     volumes:
       - .upload:/srv:rw
     environment:
-      - FILEBROWSER_ADMIN_PASSWORD=admin
+      - FILEBROWSER_ADMIN_PASSWORD=${FILEBROWSER_PASSWORD}
       - FILEBROWSER_BASEURL=/
       - VIRTUAL_HOST=upload.${DOMAIN_NAME}
       - LETSENCRYPT_HOST=upload.${DOMAIN_NAME}
@@ -92,8 +92,8 @@ services:
       - SFTPGO_DATA_PROVIDER__PASSWORD_VALIDATION__ADMINS__MIN_ENTROPY=0
       - SFTPGO_DATA_PROVIDER__CREATE_DEFAULT_ADMIN=true
       - SFTPGO_DEFAULT_ADMIN_CONFIGURED=1
-      - SFTPGO_DEFAULT_ADMIN_USERNAME=admin
-      - SFTPGO_DEFAULT_ADMIN_PASSWORD=admin
+      - SFTPGO_DEFAULT_ADMIN_USERNAME=${SFTPGO_ADMIN_USER}
+      - SFTPGO_DEFAULT_ADMIN_PASSWORD=${SFTPGO_ADMIN_PASSWORD}
       - SFTPGO_LOADDATA_FROM=/etc/sftpgo/init/loaddata.json
       - SFTPGO_LOADDATA_MODE=1
       - SFTPGO_COMMON__ACTIONS__EXECUTE_ON=upload
