@@ -11,23 +11,22 @@ echo "Identitas User: UID=$CURRENT_UID, GID=$CURRENT_GID"
 
 # 2. Cek apakah file .env ada
 if [ ! -f .env ]; then
-    echo "Error: File .env tidak ditemukan! Silakan salin dari .env.example terlebih dahulu."
-    exit 1
+    if [ -f .env.example ]; then
+        cp .env.example .env
+        echo "✔ File .env dibuat dari .env.example"
+    elif [ -f env.example ]; then
+        cp env.example .env
+        echo "✔ File .env dibuat dari env.example"
+    else
+        echo "Error: File .env tidak ditemukan!"
+        exit 1
+    fi
 fi
 
-# 3. Update HOST_UID dan HOST_GID di file .env
-# Menggunakan sed untuk mencari dan mengganti nilai atau menambahkannya jika tidak ada
-if grep -q "HOST_UID=" .env; then
-    sed -i.bak "s/^HOST_UID=.*/HOST_UID=$CURRENT_UID/" .env
-else
-    echo "HOST_UID=$CURRENT_UID" >> .env
-fi
-
-if grep -q "HOST_GID=" .env; then
-    sed -i.bak "s/^HOST_GID=.*/HOST_GID=$CURRENT_GID/" .env
-else
-    echo "HOST_GID=$CURRENT_GID" >> .env
-fi
+# 3. Update HOST_UID dan HOST_GID di file .env menggunakan perl agar kompatibel Mac & Linux
+# Kami menggunakan perl karena sed memiliki perbedaan sintaks yang signifikan antara Mac dan Linux
+perl -i -pe "s/^HOST_UID=.*/HOST_UID=$CURRENT_UID/g" .env
+perl -i -pe "s/^HOST_GID=.*/HOST_GID=$CURRENT_GID/g" .env
 
 echo "✔ File .env telah diperbarui dengan UID/GID yang sesuai."
 
@@ -36,11 +35,17 @@ echo "Memperbaiki izin folder .upload dan .database..."
 mkdir -p .upload .database logs/sftpgo-ingest
 chmod -R 755 .upload .database logs
 
-# 5. Jalankan Docker Build dan Up
+# 5. Cek apakah Docker terinstall
+if ! command -v docker &> /dev/null; then
+    echo "Error: Perintah 'docker' tidak ditemukan. Pastikan Docker sudah terinstall."
+    exit 1
+fi
+
+# 6. Jalankan Docker Build dan Up
 echo "Membangun dan menjalankan container..."
-/usr/local/bin/docker compose pull
-/usr/local/bin/docker compose build
-/usr/local/bin/docker compose up -d
+docker compose pull
+docker compose build
+docker compose up -d
 
 echo "------------------------------------"
 echo "Selesai! Layanan seharusnya sudah berjalan."
