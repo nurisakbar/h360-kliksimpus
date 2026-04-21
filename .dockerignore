@@ -1,6 +1,7 @@
 .git
 .venv
 venv
+.env
 .upload
 .database
 **/__pycache__
