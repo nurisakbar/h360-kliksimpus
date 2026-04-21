@@ -1,22 +1,29 @@
 services:
   grafana:
     image: simpledotorg/heart360tk-grafana:${HEART360TK_VERSION}
+    platform: linux/amd64
     container_name: grafana
-    ports:
-      - 3000:3000
+    expose:
+      - 3000
     restart: unless-stopped
     environment:
       - GF_DATABASE_URL=postgres://grafana:ZDI5MGE3YmYyMTRlNGNmYThkMTYyZjk3@postgres:5432/${POSTGRES_DB}
       - GF_SECURITY_ADMIN_PASSWORD=your_secure_password
+      - GF_SERVER_DOMAIN=dashboards.${DOMAIN_NAME}
+      - GF_SERVER_ROOT_URL=https://dashboards.${DOMAIN_NAME}
+      - VIRTUAL_HOST=dashboards.${DOMAIN_NAME}
+      - LETSENCRYPT_HOST=dashboards.${DOMAIN_NAME}
+      - LETSENCRYPT_EMAIL=${EMAIL}
 
   postgres:
     image: simpledotorg/heart360tk-postgresql:${HEART360TK_VERSION}
+    platform: linux/amd64
     container_name: postgres
     ports:
       - 5432:5432
     restart: unless-stopped
     volumes:
-      - ./.database:/var/lib/postgresql/data
+      - ./.database:/var/lib/postgresql/data # Data disimpan di direktori .database di host (persistent)
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
       interval: 5s
@@ -26,6 +33,7 @@ services:
 
   file-processor:
     image: simpledotorg/heart360tk-fileprocessor:${HEART360TK_VERSION}
+    platform: linux/amd64
     container_name: file-upload-trigger
     environment:
       - H360TK_DATA_LOAD_SCRIPT=/scripts/ingest_file_h360tk.py
@@ -37,59 +45,47 @@ services:
       - ./ingest_file_h360tk.py:/scripts/ingest_file_h360tk.py
       - .upload:/data:rw
 
-###
-# For now, still taken from the base image
-###
-# TODO: have configuration (like users) dumped out of the container, to avoid losing it
-# when reinstalling
   filebrowser:
     image: gtstef/filebrowser:stable-slim
     container_name: filebrowser-quantum
     restart: unless-stopped
-    ports:
-      - "8080:80"
+    expose:
+      - 80
     volumes:
       - .upload:/srv:rw
     environment:
       - FILEBROWSER_ADMIN_PASSWORD=admin
       - FILEBROWSER_BASEURL=/
+      - VIRTUAL_HOST=upload.${DOMAIN_NAME}
+      - LETSENCRYPT_HOST=upload.${DOMAIN_NAME}
+      - LETSENCRYPT_EMAIL=${EMAIL}
 
-  # Custom image: drakkan/sftpgo + Python venv; upload hook runs ingest_file_h360tk.py (see Dockerfile.sftpgo).
   sftpgo:
     build:
       context: .
       dockerfile: Dockerfile.sftpgo
       args:
-        # Must match INGEST_SCRIPT in config/sftpgo-ingest.env and the ingest .py volume below.
         INGEST_SCRIPT_PATH: /scripts/ingest_file_h360tk.py
     image: h360tk-sftpgo:local
     container_name: sftpgo
-    # Match ./.upload ownership on the host: set HOST_UID / HOST_GID in .env to `id -u` / `id -g`.
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     depends_on:
       - postgres
     ports:
-      - "8090:8080"  # Web Admin & Client UI
-      - "2022:2022"  # SFTP Service
-      - "2121:2121"  # FTP control
-      # FTP passive data — required for uploads from host/LAN (see ftpd env below).
+      - "8090:8080"
+      - "2022:2022"
+      - "2121:2121"
       - "50000-50100:50000-50100"
     volumes:
       - ./loaddata.json:/etc/sftpgo/init/loaddata.json
-      # Same host dir as file-processor:/data and filebrowser:/srv
       - .upload:/srv/sftpgo/data/webuser:rw
-      # Hook config: Postgres + INGEST_SCRIPT (SFTPGo does not pass compose env into hooks).
       - ./config/sftpgo-ingest.env:/etc/sftpgo/ingest.env:ro
-      # Hook + Python logs (not mixed with uploads)
       - ./logs/sftpgo-ingest:/var/log/sftpgo-ingest:rw
       - ./scripts/sftpgo_ingest_hook.sh:/usr/local/bin/sftpgo_ingest_hook.sh:ro
       - ./ingest_file_h360tk.py:/scripts/ingest_file_h360tk.py:ro
     environment:
       - SFTPGO_HTTPD__BINDINGS__0__PORT=8080
       - SFTPGO_FTPD__BINDINGS__0__PORT=2121
-      # PASV must advertise an address the *client* can open data connections to (not the container IP).
-      # Set FTP_PASSIVE_IP in .env to match how users connect: 127.0.0.1 for ftp://127.0.0.1:2121 only;
-      # your machine LAN IP if everyone uses ftp://<lan-ip>:2121 (works for local + LAN); public IP for internet.
       - SFTPGO_FTPD__BINDINGS__0__FORCE_PASSIVE_IP=${FTP_PASSIVE_IP:-127.0.0.1}
       - SFTPGO_FTPD__PASSIVE_PORT_RANGE__START=50000
       - SFTPGO_FTPD__PASSIVE_PORT_RANGE__END=50100
@@ -102,3 +98,30 @@ services:
       - SFTPGO_LOADDATA_MODE=1
       - SFTPGO_COMMON__ACTIONS__EXECUTE_ON=upload
       - SFTPGO_COMMON__ACTIONS__HOOK=/usr/local/bin/sftpgo_ingest_hook.sh
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./config/certs:/etc/nginx/certs
+      - ./config/vhost:/etc/nginx/vhost.d
+      - ./config/html:/usr/share/nginx/html
+    labels:
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy"
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: nginx-proxy-acme
+    restart: unless-stopped
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/acme:/etc/acme.sh
+    depends_on:
+      - nginx-proxy
